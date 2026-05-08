@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Presidio">
+  <title>Presidio Golf Course Guide</title>
+  <style>
+    :root {
+      --green-dark: #1a2e1a; --green-mid: #2d5a2d; --gold: #b8975a;
+      --bg: #0f1a0f; --surface: #182818; --surface2: #1f3520;
+      --text: #eef2ee; --text-sec: #8aab8a; --border: rgba(255,255,255,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; min-height: 100vh; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+    .header { background: var(--green-dark); padding: 52px 20px 14px; text-align: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+    .header h1 { font-size: 17px; font-weight: 600; letter-spacing: .3px; color: var(--gold); }
+    .header p  { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+    .hole-strip { display: flex; overflow-x: auto; gap: 7px; padding: 12px 14px; background: var(--surface); border-bottom: 1px solid var(--border); scrollbar-width: none; -webkit-overflow-scrolling: touch; position: sticky; top: 77px; z-index: 9; }
+    .hole-strip::-webkit-scrollbar { display: none; }
+    .hole-btn { flex: 0 0 40px; height: 40px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface2); color: var(--text-sec); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; }
+    .hole-btn.active { background: var(--gold); border-color: var(--gold); color: #0f1a0f; font-weight: 700; transform: scale(1.1); }
+    .cover-btn { flex: 0 0 auto; height: 40px; padding: 0 14px; border: 1px solid var(--gold); border-radius: 20px; background: var(--surface2); color: var(--gold); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px; }
+    .cover-btn.active { background: var(--gold); color: #0f1a0f; }
+    .content { padding: 16px; max-width: 480px; margin: 0 auto; }
+    .cover-hero { width: 100%; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 14px; background: linear-gradient(135deg, #1a2e1a 0%, #2d5a2d 100%); height: 160px; display: flex; align-items: center; justify-content: center; font-size: 64px; }
+    .cover-card { background: var(--surface); border: 1px solid var(--gold); border-radius: 14px; padding: 20px; }
+    .cover-card h2 { font-size: 20px; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+    .cover-card .subtitle { font-size: 12px; color: var(--text-sec); margin-bottom: 14px; }
+    .cover-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+    .stat-val { font-size: 18px; font-weight: 700; color: var(--gold); }
+    .stat-lbl { font-size: 10px; color: var(--text-sec); margin-top: 2px; text-transform: uppercase; letter-spacing: .6px; }
+    .general-notes { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    .general-notes .notes-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--gold); margin-bottom: 10px; }
+    .general-notes ul { list-style: none; }
+    .general-notes ul li { display: flex; gap: 8px; font-size: 13px; color: var(--text-sec); line-height: 1.5; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .general-notes ul li:last-child { border-bottom: none; }
+    .start-btn { display: block; width: 100%; padding: 14px; background: var(--green-mid); border: none; border-radius: 12px; color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; }
+    .hole-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .hole-number { width: 52px; height: 52px; background: var(--green-mid); border: 2px solid var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+    .hole-title { font-size: 20px; font-weight: 600; }
+    .hole-meta  { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+    .hole-stats { display: flex; gap: 8px; margin-bottom: 14px; }
+    .hole-stat { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+    .hole-stat .val { font-size: 20px; font-weight: 700; color: var(--gold); }
+    .hole-stat .lbl { font-size: 10px; color: var(--text-sec); margin-top: 2px; text-transform: uppercase; letter-spacing: .6px; }
+    .notes-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .notes-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-sec); margin-bottom: 10px; }
+    .tips { list-style: none; }
+    .tips li { display: flex; gap: 10px; padding: 9px 0; font-size: 14px; line-height: 1.5; border-bottom: 1px solid var(--border); }
+    .tips li:last-child { border-bottom: none; }
+    .tip-icon { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle; }
+    .badge-hard   { background: rgba(200,60,60,.25); color: #f08080; border: 1px solid rgba(200,60,60,.4); }
+    .badge-medium { background: rgba(200,160,60,.2); color: #d4a83a; border: 1px solid rgba(200,160,60,.35); }
+    .badge-easy   { background: rgba(60,160,80,.2); color: #6cc87a; border: 1px solid rgba(60,160,80,.35); }
+
+    /* ── Green Heat Map ── */
+    .heatmap-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .heatmap-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-sec); margin-bottom: 10px; }
+    .heatmap-wrap { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: #111; }
+    .heatmap-wrap img { display: block; width: 100%; height: auto; }
+    .heatmap-legend { display: flex; align-items: center; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+    .heatmap-legend span { font-size: 9px; color: var(--text-sec); }
+    .legend-bar { height: 8px; border-radius: 2px; flex: 1; min-width: 20px; }
+
+    .nav-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .nav-btn { padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; }
+    .nav-btn:disabled { opacity: .25; cursor: default; }
+    .nav-btn.next { background: var(--green-mid); border-color: var(--green-mid); }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1>⛳ Presidio Golf Course Guide</h1>
+  <p id="header-sub">Presidio Golf Course · San Francisco</p>
+</div>
+<div class="hole-strip" id="hole-strip">
+  <button class="cover-btn active" id="cover-btn" onclick="showCover()">🗺 Cover</button>
+</div>
+<div class="content">
+  <div id="cover-view">
+    <div class="cover-hero">🌁</div>
+    <div class="cover-card">
+      <h2>Presidio Golf Course</h2>
+      <p class="subtitle">San Francisco, CA · White Tees</p>
+      <div class="cover-stats">
+        <div class="stat-box"><div class="stat-val">18</div><div class="stat-lbl">Holes</div></div>
+        <div class="stat-box"><div class="stat-val">71</div><div class="stat-lbl">Par</div></div>
+        <div class="stat-box"><div class="stat-val">6100</div><div class="stat-lbl">Yards</div></div>
+      </div>
+      <div class="general-notes">
+        <div class="notes-label">📋 General Notes</div>
+        <ul>
+          <li><span>💨</span><span>Short course but plays much harder than yardage — high winds, severe slopes, blind shots & fescue</span></li>
+          <li><span>🌬️</span><span>Wind mild in the morning, peaks ~3pm, generally off the ocean (west). Strongest on high holes: #1,2,6,11,17,18</span></li>
+          <li><span>⛳</span><span>Greens built into predominant slopes — trust green maps & Aimpoint, NOT your eyes</span></li>
+          <li><span>🏌️</span><span>Greens typically slow but severely sloped. Even 3–5ft putts often need to be played well outside the hole</span></li>
+          <li><span>🌄</span><span>Rarely a flat lie — uphill/downhill and above/below feet lies are the norm</span></li>
+          <li><span>📊</span><span>Rating: 71.1 / Slope: 132</span></li>
+        </ul>
+      </div>
+      <button class="start-btn" onclick="showHole(1)">Start at Hole 1 →</button>
+    </div>
+  </div>
+  <div id="hole-view" style="display:none">
+    <div class="hole-header">
+      <div class="hole-number" id="hn-num">1</div>
+      <div><div class="hole-title" id="hn-title">Hole 1</div><div class="hole-meta" id="hn-meta"></div></div>
+    </div>
+    <div class="hole-stats" id="hole-stats-row"></div>
+    <div class="heatmap-card">
+      <div class="heatmap-label">🗺️ Green Heat Map</div>
+      <div class="heatmap-wrap" id="heatmap-svg"></div>
+      <div class="heatmap-legend">
+        <span>0-1</span><div class="legend-bar" style="background:#7ecfef"></div>
+        <span>2-3</span><div class="legend-bar" style="background:#5cb85c"></div>
+        <span>4-5</span><div class="legend-bar" style="background:#f0ad4e"></div>
+        <span>6-7</span><div class="legend-bar" style="background:#e05c2a"></div>
+        <span>8+</span><div class="legend-bar" style="background:#c0392b"></div>
+        <span style="margin-left:4px">↓ Slope direction</span>
+      </div>
+    </div>
+    <div class="notes-card">
+      <div class="notes-label">🏌️ Playing Notes</div>
+      <ul class="tips" id="tips-list"></ul>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">← Previous</button>
+      <button class="nav-btn next" id="btn-next" onclick="navigate(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── REAL HOLE IMAGES ─────────────────────────────────────────────────────────
+const MAPS = {
+  1:  'holes/Hole1.png',
+  2:  'holes/Hole2.png',
+  3:  'holes/Hole3.png',
+  4:  'holes/Hole4.png',
+  5:  'holes/Hole5.png',
+  6:  'holes/Hole6.png',
+  7:  'holes/Hole7.png',
+  8:  'holes/Hole8.png',
+  9:  'holes/Hole9.png',
+  10: null,
+  11: 'holes/Hole11.png',
+  12: 'holes/Hole12.png',
+  13: 'holes/Hole13.png',
+  14: 'holes/Hole14.png',
+  15: 'holes/Hole15.png',
+  16: 'holes/Hole16.png',
+  17: 'holes/Hole17.png',
+  18: 'holes/Hole18.png',
+};
+
+const MAPS_UNUSED = {
+  1: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="110" cy="100" rx="95" ry="85" fill="#c0392b"/>
+    <ellipse cx="110" cy="90" rx="70" ry="65" fill="#e05c2a"/>
+    <ellipse cx="110" cy="82" rx="50" ry="50" fill="#f0ad4e"/>
+    <ellipse cx="110" cy="75" rx="35" ry="38" fill="#8dc63f"/>
+    <ellipse cx="110" cy="70" rx="20" ry="22" fill="#5cb85c"/>
+    <!-- false front bottom right -->
+    <ellipse cx="145" cy="148" rx="18" ry="12" fill="#7ecfef"/>
+    <!-- arrows pointing down (back to front) -->
+    <text x="85" y="65" fill="white" font-size="12">↓</text><text x="105" y="65" fill="white" font-size="12">↓</text><text x="125" y="65" fill="white" font-size="12">↓</text>
+    <text x="75" y="85" fill="white" font-size="12">↓</text><text x="105" y="85" fill="white" font-size="12">↓</text><text x="135" y="85" fill="white" font-size="12">↓</text>
+    <text x="75" y="110" fill="white" font-size="12">↓</text><text x="105" y="110" fill="white" font-size="12">↓</text><text x="135" y="110" fill="white" font-size="12">↓</text>
+    <text x="75" y="135" fill="white" font-size="12">↓</text><text x="105" y="135" fill="white" font-size="12">↓</text><text x="135" y="135" fill="white" font-size="12">↓</text>
+    <!-- bunker -->
+    <ellipse cx="65" cy="165" rx="18" ry="12" fill="#d4b483" opacity="0.7"/>
+    <text x="50" y="185" fill="#888" font-size="9">Bunker</text>
+    <text x="70" y="14" fill="#555" font-size="10" font-weight="bold">Back-to-Front · Severe</text>
+  </svg>`,
+
+  2: `<svg viewBox="0 0 220 230" xmlns="http://www.w3.org/2000/svg">
+    <!-- outer brutal ring -->
+    <ellipse cx="110" cy="110" rx="98" ry="105" fill="#9b1f1f"/>
+    <ellipse cx="110" cy="110" rx="80" ry="87" fill="#c0392b"/>
+    <ellipse cx="110" cy="108" rx="62" ry="68" fill="#e05c2a"/>
+    <ellipse cx="110" cy="105" rx="44" ry="50" fill="#f0ad4e"/>
+    <!-- large flat centre -->
+    <ellipse cx="110" cy="102" rx="28" ry="34" fill="#7ecfef"/>
+    <!-- bunker bottom left -->
+    <ellipse cx="55" cy="190" rx="22" ry="14" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows — edges cascade away, centre flat -->
+    <text x="88" y="75" fill="white" font-size="11">↓</text><text x="108" y="75" fill="white" font-size="11">↓</text><text x="128" y="75" fill="white" font-size="11">↓</text>
+    <text x="40" y="105" fill="white" font-size="11">←</text><text x="170" y="105" fill="white" font-size="11">→</text>
+    <text x="40" y="135" fill="white" font-size="11">←</text><text x="170" y="135" fill="white" font-size="11">→</text>
+    <text x="75" y="165" fill="white" font-size="11">↓</text><text x="108" y="165" fill="white" font-size="11">↓</text><text x="140" y="165" fill="white" font-size="11">↓</text>
+    <text x="88" y="100" fill="#006" font-size="10">FLAT</text>
+    <text x="60" y="14" fill="#555" font-size="10" font-weight="bold">Centre Flat · Edges Brutal</text>
+  </svg>`,
+
+  3: `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg">
+    <!-- almost entirely steep -->
+    <ellipse cx="108" cy="102" rx="95" ry="88" fill="#9b1f1f"/>
+    <ellipse cx="108" cy="100" rx="78" ry="72" fill="#c0392b"/>
+    <ellipse cx="108" cy="97" rx="60" ry="57" fill="#e05c2a"/>
+    <ellipse cx="108" cy="94" rx="42" ry="42" fill="#f0ad4e"/>
+    <!-- tiny flat patch front right -->
+    <ellipse cx="148" cy="148" rx="14" ry="10" fill="#7ecfef"/>
+    <!-- bunker hint -->
+    <ellipse cx="60" cy="170" rx="20" ry="12" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows ALL downward — severe back to front -->
+    <text x="78" y="60" fill="white" font-size="13">↓</text><text x="98" y="60" fill="white" font-size="13">↓</text><text x="118" y="60" fill="white" font-size="13">↓</text>
+    <text x="68" y="85" fill="white" font-size="13">↓</text><text x="98" y="85" fill="white" font-size="13">↓</text><text x="128" y="85" fill="white" font-size="13">↓</text>
+    <text x="68" y="110" fill="white" font-size="13">↓</text><text x="98" y="110" fill="white" font-size="13">↓</text><text x="128" y="110" fill="white" font-size="13">↓</text>
+    <text x="68" y="135" fill="white" font-size="13">↓</text><text x="98" y="135" fill="white" font-size="13">↓</text><text x="128" y="135" fill="white" font-size="13">↓</text>
+    <text x="55" y="14" fill="#555" font-size="10" font-weight="bold">SEVERE Back-to-Front</text>
+  </svg>`,
+
+  4: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="108" cy="98" rx="95" ry="88" fill="#9b1f1f"/>
+    <ellipse cx="108" cy="95" rx="74" ry="70" fill="#c0392b"/>
+    <ellipse cx="108" cy="92" rx="54" ry="53" fill="#f0ad4e"/>
+    <ellipse cx="108" cy="88" rx="36" ry="37" fill="#8dc63f"/>
+    <ellipse cx="108" cy="85" rx="20" ry="22" fill="#5cb85c"/>
+    <!-- bunkers -->
+    <ellipse cx="60" cy="160" rx="22" ry="14" fill="#d4b483" opacity="0.7"/>
+    <ellipse cx="165" cy="80" rx="16" ry="12" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows right to left -->
+    <text x="135" y="72" fill="white" font-size="12">←</text><text x="108" y="72" fill="white" font-size="12">←</text>
+    <text x="140" y="95" fill="white" font-size="12">←</text><text x="108" y="95" fill="white" font-size="12">←</text>
+    <text x="140" y="118" fill="white" font-size="12">←</text><text x="108" y="118" fill="white" font-size="12">←</text>
+    <text x="65" y="14" fill="#555" font-size="10" font-weight="bold">Right-to-Left · Steep edges</text>
+  </svg>`,
+
+  5: `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg">
+    <!-- mostly steep, punchbowl front left -->
+    <ellipse cx="108" cy="100" rx="90" ry="90" fill="#9b1f1f"/>
+    <ellipse cx="115" cy="95" rx="72" ry="74" fill="#c0392b"/>
+    <ellipse cx="118" cy="90" rx="55" ry="58" fill="#e05c2a"/>
+    <ellipse cx="120" cy="86" rx="38" ry="44" fill="#f0ad4e"/>
+    <!-- punchbowl front left -->
+    <ellipse cx="78" cy="140" rx="22" ry="16" fill="#5cb85c"/>
+    <ellipse cx="74" cy="143" rx="10" ry="8" fill="#7ecfef"/>
+    <!-- arrows -->
+    <text x="100" y="60" fill="white" font-size="12">↓</text><text x="125" y="60" fill="white" font-size="12">↓</text>
+    <text x="85" y="90" fill="white" font-size="12">↓</text><text x="120" y="90" fill="white" font-size="12">↓</text><text x="150" y="90" fill="white" font-size="12">→</text>
+    <text x="85" y="115" fill="white" font-size="12">↓</text><text x="120" y="115" fill="white" font-size="12">↓</text>
+    <text x="62" y="140" fill="white" font-size="10">↑</text>
+    <text x="45" y="165" fill="#5cb85c" font-size="9" font-weight="bold">Punchbowl</text>
+    <text x="55" y="14" fill="#555" font-size="10" font-weight="bold">Steep · Punchbowl Front-Left</text>
+  </svg>`,
+
+  6: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- S-curve / double swirl, entirely steep, tiny refuge top-right -->
+    <ellipse cx="108" cy="100" rx="95" ry="88" fill="#9b1f1f"/>
+    <ellipse cx="108" cy="100" rx="80" ry="74" fill="#c0392b"/>
+    <!-- left swirl -->
+    <ellipse cx="82" cy="105" rx="35" ry="42" fill="#e05c2a"/>
+    <!-- right swirl -->
+    <ellipse cx="138" cy="92" rx="32" ry="38" fill="#e05c2a"/>
+    <!-- dark centres of swirls -->
+    <ellipse cx="80" cy="108" rx="18" ry="22" fill="#c0392b"/>
+    <ellipse cx="140" cy="90" rx="16" ry="20" fill="#c0392b"/>
+    <!-- tiny refuge top right -->
+    <ellipse cx="162" cy="48" rx="12" ry="9" fill="#8dc63f"/>
+    <!-- arrows -->
+    <text x="62" y="92" fill="white" font-size="12">↙</text><text x="62" y="115" fill="white" font-size="12">↙</text>
+    <text x="148" y="75" fill="white" font-size="12">↘</text><text x="148" y="98" fill="white" font-size="12">↘</text>
+    <text x="100" y="140" fill="white" font-size="12">←</text><text x="125" y="140" fill="white" font-size="12">←</text>
+    <text x="148" y="50" fill="#5cb85c" font-size="9">Only safe</text>
+    <text x="50" y="14" fill="#555" font-size="10" font-weight="bold">Double Swirl · Left-to-Right</text>
+  </svg>`,
+
+  7: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- triangular, back steep, front left safe -->
+    <polygon points="110,10 200,180 20,180" fill="#c0392b"/>
+    <polygon points="110,30 185,170 35,170" fill="#e05c2a"/>
+    <polygon points="110,50 165,158 55,158" fill="#f0ad4e"/>
+    <polygon points="110,70 142,145 75,145" fill="#8dc63f"/>
+    <!-- safe front centre-left -->
+    <ellipse cx="88" cy="152" rx="16" ry="10" fill="#5cb85c"/>
+    <ellipse cx="85" cy="154" rx="8" ry="6" fill="#7ecfef"/>
+    <!-- bunkers -->
+    <ellipse cx="175" cy="145" rx="18" ry="12" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows right-to-left, downward -->
+    <text x="140" y="80" fill="white" font-size="12">←</text><text x="108" y="80" fill="white" font-size="12">←</text>
+    <text x="148" y="105" fill="white" font-size="12">←</text><text x="108" y="105" fill="white" font-size="12">←</text>
+    <text x="148" y="130" fill="white" font-size="12">←</text><text x="108" y="130" fill="white" font-size="12">↓</text>
+    <text x="62" y="155" fill="white" font-size="10">↑</text>
+    <text x="50" y="14" fill="#555" font-size="10" font-weight="bold">Right-to-Left · Safe: Front-Left</text>
+  </svg>`,
+
+  8: `<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+    <!-- tall elongated green, steep left edge, back-to-front -->
+    <ellipse cx="100" cy="118" rx="85" ry="108" fill="#c0392b"/>
+    <!-- steep left strip -->
+    <rect x="8" y="18" width="30" height="200" rx="14" fill="#9b1f1f"/>
+    <!-- main body -->
+    <ellipse cx="108" cy="115" rx="60" ry="95" fill="#e05c2a"/>
+    <ellipse cx="112" cy="110" rx="42" ry="78" fill="#f0ad4e"/>
+    <!-- moderate centre top -->
+    <ellipse cx="115" cy="88" rx="28" ry="50" fill="#8dc63f"/>
+    <ellipse cx="118" cy="76" rx="16" ry="30" fill="#5cb85c"/>
+    <!-- arrows all downward -->
+    <text x="88" y="60" fill="white" font-size="12">↓</text><text x="112" y="60" fill="white" font-size="12">↓</text><text x="136" y="60" fill="white" font-size="12">↓</text>
+    <text x="88" y="95" fill="white" font-size="12">↓</text><text x="112" y="95" fill="white" font-size="12">↓</text><text x="136" y="95" fill="white" font-size="12">↓</text>
+    <text x="88" y="130" fill="white" font-size="12">↓</text><text x="112" y="130" fill="white" font-size="12">↓</text><text x="136" y="130" fill="white" font-size="12">↓</text>
+    <text x="88" y="165" fill="white" font-size="12">↓</text><text x="112" y="165" fill="white" font-size="12">↓</text><text x="136" y="165" fill="white" font-size="12">↓</text>
+    <text x="42" y="14" fill="#555" font-size="10" font-weight="bold">Back-to-Front · Steep Left Edge</text>
+  </svg>`,
+
+  9: `<svg viewBox="0 0 240 210" xmlns="http://www.w3.org/2000/svg">
+    <!-- complex two-section green -->
+    <ellipse cx="118" cy="105" rx="105" ry="90" fill="#e05c2a"/>
+    <!-- steep red band across middle -->
+    <rect x="20" y="88" width="200" height="28" rx="8" fill="#c0392b"/>
+    <!-- upper section moderate -->
+    <ellipse cx="118" cy="68" rx="82" ry="45" fill="#8dc63f"/>
+    <!-- flat zones: front left blue and centre right blue -->
+    <ellipse cx="72" cy="68" rx="24" ry="18" fill="#7ecfef"/>
+    <ellipse cx="162" cy="138" rx="22" ry="16" fill="#7ecfef"/>
+    <!-- false front -->
+    <ellipse cx="118" cy="168" rx="70" ry="22" fill="#c0392b"/>
+    <!-- arrows -->
+    <text x="55" y="62" fill="white" font-size="11">↑</text><text x="118" y="55" fill="white" font-size="11">↓</text><text x="175" y="62" fill="white" font-size="11">↑</text>
+    <text x="55" y="130" fill="white" font-size="11">↓</text><text x="118" y="130" fill="white" font-size="11">↓</text>
+    <text x="155" y="145" fill="white" font-size="10">↑</text>
+    <text x="52" y="14" fill="#555" font-size="10" font-weight="bold">Two Zones · Steep Ridge Middle</text>
+  </svg>`,
+
+  10: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="108" cy="98" rx="95" ry="88" fill="#e05c2a"/>
+    <ellipse cx="112" cy="95" rx="72" ry="68" fill="#f0ad4e"/>
+    <ellipse cx="115" cy="90" rx="50" ry="50" fill="#8dc63f"/>
+    <ellipse cx="118" cy="85" rx="30" ry="32" fill="#5cb85c"/>
+    <!-- bunker long left -->
+    <ellipse cx="52" cy="48" rx="20" ry="14" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows mainly front-right -->
+    <text x="85" y="70" fill="white" font-size="12">↓</text><text x="115" y="70" fill="white" font-size="12">↓</text>
+    <text x="68" y="98" fill="white" font-size="12">↙</text><text x="108" y="98" fill="white" font-size="12">↓</text><text x="148" y="98" fill="white" font-size="12">↓</text>
+    <text x="68" y="125" fill="white" font-size="12">↙</text><text x="108" y="125" fill="white" font-size="12">↓</text>
+    <text x="48" y="14" fill="#555" font-size="10" font-weight="bold">Front-Right Slope · Beware Left</text>
+  </svg>`,
+
+  11: `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg">
+    <!-- triangular, right-to-left, right blue zone, left steep -->
+    <polygon points="40,195 180,195 155,15 65,15" fill="#e05c2a"/>
+    <polygon points="52,183 168,183 148,28 72,28" fill="#f0ad4e"/>
+    <polygon points="65,168 155,168 140,42 80,42" fill="#8dc63f"/>
+    <!-- right blue zone -->
+    <ellipse cx="148" cy="115" rx="22" ry="28" fill="#7ecfef"/>
+    <!-- front right small blue -->
+    <ellipse cx="145" cy="162" rx="14" ry="10" fill="#7ecfef"/>
+    <!-- left steep -->
+    <rect x="20" y="25" width="35" height="165" rx="14" fill="#c0392b"/>
+    <!-- bunker front -->
+    <ellipse cx="105" cy="185" rx="18" ry="10" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows right to left -->
+    <text x="148" y="75" fill="white" font-size="12">←</text><text x="105" y="75" fill="white" font-size="12">←</text>
+    <text x="148" y="102" fill="white" font-size="12">←</text><text x="105" y="102" fill="white" font-size="12">←</text>
+    <text x="148" y="130" fill="white" font-size="12">←</text><text x="105" y="130" fill="white" font-size="12">↓</text>
+    <text x="80" y="165" fill="white" font-size="10">↓</text>
+    <text x="50" y="14" fill="#555" font-size="10" font-weight="bold">Right-to-Left · Blue Zone Right</text>
+  </svg>`,
+
+  12: `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+    <!-- footprint shaped, back-to-front, side funnels -->
+    <ellipse cx="100" cy="125" rx="88" ry="120" fill="#9b1f1f"/>
+    <ellipse cx="100" cy="122" rx="70" ry="100" fill="#c0392b"/>
+    <ellipse cx="100" cy="118" rx="52" ry="80" fill="#e05c2a"/>
+    <ellipse cx="100" cy="112" rx="36" ry="62" fill="#f0ad4e"/>
+    <ellipse cx="100" cy="105" rx="22" ry="44" fill="#8dc63f"/>
+    <!-- tiny front-left flat -->
+    <ellipse cx="72" cy="200" rx="14" ry="9" fill="#7ecfef"/>
+    <!-- side bunkers -->
+    <ellipse cx="28" cy="130" rx="16" ry="28" fill="#d4b483" opacity="0.7"/>
+    <ellipse cx="172" cy="130" rx="16" ry="28" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows: down from top, funnel inward from sides -->
+    <text x="80" y="65" fill="white" font-size="12">↓</text><text x="100" y="65" fill="white" font-size="12">↓</text><text x="118" y="65" fill="white" font-size="12">↓</text>
+    <text x="48" y="115" fill="white" font-size="12">→</text><text x="145" y="115" fill="white" font-size="12">←</text>
+    <text x="48" y="145" fill="white" font-size="12">→</text><text x="145" y="145" fill="white" font-size="12">←</text>
+    <text x="80" y="175" fill="white" font-size="12">↓</text><text x="100" y="175" fill="white" font-size="12">↓</text>
+    <text x="40" y="14" fill="#555" font-size="10" font-weight="bold">Back-to-Front · Funnels Centre</text>
+  </svg>`,
+
+  13: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- FLATTEST green — huge blue centre, steep edges -->
+    <ellipse cx="108" cy="100" rx="95" ry="85" fill="#c0392b"/>
+    <ellipse cx="108" cy="100" rx="78" ry="70" fill="#e05c2a"/>
+    <ellipse cx="108" cy="100" rx="60" ry="54" fill="#f0ad4e"/>
+    <ellipse cx="108" cy="100" rx="42" ry="38" fill="#8dc63f"/>
+    <!-- HUGE flat centre -->
+    <ellipse cx="108" cy="98" rx="30" ry="28" fill="#5cb85c"/>
+    <ellipse cx="108" cy="96" rx="18" ry="17" fill="#7ecfef"/>
+    <!-- false front -->
+    <rect x="50" y="162" width="116" height="20" rx="8" fill="#9b1f1f"/>
+    <!-- bunkers -->
+    <ellipse cx="52" cy="155" rx="18" ry="12" fill="#d4b483" opacity="0.7"/>
+    <ellipse cx="168" cy="140" rx="16" ry="12" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows: gently right to left -->
+    <text x="128" y="82" fill="white" font-size="11">←</text><text x="100" y="82" fill="white" font-size="11">←</text>
+    <text x="128" y="102" fill="white" font-size="11">←</text><text x="100" y="102" fill="white" font-size="11">←</text>
+    <text x="78" y="92" fill="#003" font-size="10" font-weight="bold">FLAT</text>
+    <text x="42" y="14" fill="#555" font-size="10" font-weight="bold">FLATTEST Green · Gently R-to-L</text>
+  </svg>`,
+
+  14: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- two tiered, higher right lobe, steep edges -->
+    <ellipse cx="108" cy="98" rx="94" ry="85" fill="#c0392b"/>
+    <ellipse cx="108" cy="95" rx="75" ry="68" fill="#e05c2a"/>
+    <ellipse cx="108" cy="92" rx="56" ry="52" fill="#f0ad4e"/>
+    <!-- lower left lobe -->
+    <ellipse cx="82" cy="108" rx="30" ry="28" fill="#8dc63f"/>
+    <!-- higher right lobe -->
+    <ellipse cx="138" cy="78" rx="26" ry="24" fill="#f0ad4e"/>
+    <ellipse cx="140" cy="76" rx="14" ry="13" fill="#8dc63f"/>
+    <!-- tier dividing line hint -->
+    <line x1="60" y1="118" x2="172" y2="78" stroke="white" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.5"/>
+    <!-- bunker front -->
+    <ellipse cx="108" cy="172" rx="32" ry="14" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows -->
+    <text x="80" y="75" fill="white" font-size="12">↓</text><text x="108" y="68" fill="white" font-size="12">↓</text>
+    <text x="65" y="100" fill="white" font-size="12">↓</text><text x="108" y="100" fill="white" font-size="12">↓</text><text x="150" y="90" fill="white" font-size="12">↓</text>
+    <text x="55" y="14" fill="#555" font-size="10" font-weight="bold">Two-Tier · Higher Right Lobe</text>
+  </svg>`,
+
+  15: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- semi-volcano: blue channel centre, steep sides -->
+    <ellipse cx="108" cy="100" rx="90" ry="88" fill="#c0392b"/>
+    <ellipse cx="108" cy="100" rx="72" ry="70" fill="#e05c2a"/>
+    <!-- left steep -->
+    <ellipse cx="72" cy="102" rx="30" ry="60" fill="#c0392b"/>
+    <!-- right steep -->
+    <ellipse cx="148" cy="102" rx="28" ry="58" fill="#c0392b"/>
+    <!-- centre channel — the volcano bowl -->
+    <ellipse cx="108" cy="102" rx="22" ry="62" fill="#5cb85c"/>
+    <ellipse cx="108" cy="105" rx="12" ry="44" fill="#7ecfef"/>
+    <!-- false front -->
+    <ellipse cx="108" cy="170" rx="50" ry="16" fill="#9b1f1f"/>
+    <!-- bunkers both sides -->
+    <ellipse cx="52" cy="148" rx="18" ry="12" fill="#d4b483" opacity="0.7"/>
+    <ellipse cx="165" cy="148" rx="16" ry="12" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows: sides point inward, centre upward -->
+    <text x="45" y="90" fill="white" font-size="12">→</text><text x="45" y="115" fill="white" font-size="12">→</text>
+    <text x="158" y="90" fill="white" font-size="12">←</text><text x="158" y="115" fill="white" font-size="12">←</text>
+    <text x="100" y="72" fill="white" font-size="12">↑</text><text x="100" y="95" fill="white" font-size="12">↑</text><text x="100" y="118" fill="white" font-size="12">↑</text>
+    <text x="75" y="14" fill="#555" font-size="10" font-weight="bold">Semi-Volcano · Bowl Centre</text>
+  </svg>`,
+
+  16: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- two blue pools centre-right, steep edges, uphill approach -->
+    <ellipse cx="108" cy="100" rx="96" ry="85" fill="#c0392b"/>
+    <ellipse cx="108" cy="98" rx="76" ry="68" fill="#e05c2a"/>
+    <ellipse cx="108" cy="95" rx="56" ry="52" fill="#f0ad4e"/>
+    <ellipse cx="108" cy="92" rx="38" ry="38" fill="#8dc63f"/>
+    <!-- left moderate zone (running up approach) -->
+    <ellipse cx="80" cy="95" rx="20" ry="28" fill="#5cb85c"/>
+    <!-- two blue pools right -->
+    <ellipse cx="135" cy="80" rx="16" ry="12" fill="#7ecfef"/>
+    <ellipse cx="138" cy="105" rx="15" ry="12" fill="#7ecfef"/>
+    <!-- bunker right approach -->
+    <ellipse cx="168" cy="130" rx="18" ry="14" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows -->
+    <text x="78" y="72" fill="white" font-size="12">↓</text><text x="108" y="72" fill="white" font-size="12">↓</text><text x="138" y="65" fill="white" font-size="10">↓</text>
+    <text x="78" y="100" fill="white" font-size="12">↓</text><text x="108" y="100" fill="white" font-size="12">↓</text>
+    <text x="50" y="14" fill="#555" font-size="10" font-weight="bold">Two Blue Pools Right · Run-up Left</text>
+  </svg>`,
+
+  17: `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- most dramatic two-tier: extreme steep front, two lobes back -->
+    <!-- front tier — brutal steep -->
+    <ellipse cx="108" cy="135" rx="90" ry="55" fill="#9b1f1f"/>
+    <ellipse cx="108" cy="128" rx="72" ry="45" fill="#c0392b"/>
+    <!-- transition zone -->
+    <ellipse cx="108" cy="105" rx="70" ry="30" fill="#e05c2a"/>
+    <!-- back tier — two lobes -->
+    <ellipse cx="108" cy="72" rx="80" ry="42" fill="#8dc63f"/>
+    <!-- left lobe blue -->
+    <ellipse cx="72" cy="68" rx="28" ry="22" fill="#5cb85c"/>
+    <ellipse cx="68" cy="65" rx="16" ry="13" fill="#7ecfef"/>
+    <!-- right lobe blue -->
+    <ellipse cx="148" cy="68" rx="26" ry="20" fill="#5cb85c"/>
+    <ellipse cx="150" cy="65" rx="14" ry="12" fill="#7ecfef"/>
+    <!-- tier divider -->
+    <line x1="22" y1="108" x2="198" y2="108" stroke="white" stroke-width="2" stroke-dasharray="6,4" opacity="0.6"/>
+    <!-- bunkers sides -->
+    <ellipse cx="28" cy="100" rx="14" ry="22" fill="#d4b483" opacity="0.7"/>
+    <ellipse cx="188" cy="100" rx="14" ry="22" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows — front tier ALL down, back tier subtle -->
+    <text x="78" y="125" fill="white" font-size="13">↓</text><text x="105" y="125" fill="white" font-size="13">↓</text><text x="132" y="125" fill="white" font-size="13">↓</text>
+    <text x="78" y="148" fill="white" font-size="13">↓</text><text x="105" y="148" fill="white" font-size="13">↓</text><text x="132" y="148" fill="white" font-size="13">↓</text>
+    <text x="55" y="68" fill="white" font-size="10">↑</text><text x="138" y="68" fill="white" font-size="10">↑</text>
+    <text x="38" y="14" fill="#555" font-size="10" font-weight="bold">Two-Tier · Extreme Front Slope</text>
+  </svg>`,
+
+  18: `<svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+    <!-- large blue back, moderate centre, steep front, steep right notch -->
+    <ellipse cx="108" cy="108" rx="92" ry="100" fill="#e05c2a"/>
+    <!-- steep front -->
+    <ellipse cx="108" cy="158" rx="78" ry="45" fill="#c0392b"/>
+    <!-- right notch steep -->
+    <ellipse cx="168" cy="90" rx="28" ry="35" fill="#c0392b"/>
+    <!-- centre moderate -->
+    <ellipse cx="100" cy="98" rx="58" ry="62" fill="#8dc63f"/>
+    <!-- large back flat zone -->
+    <ellipse cx="100" cy="68" rx="52" ry="38" fill="#5cb85c"/>
+    <ellipse cx="100" cy="62" rx="36" ry="26" fill="#7ecfef"/>
+    <!-- bunkers front sides -->
+    <ellipse cx="62" cy="165" rx="18" ry="12" fill="#d4b483" opacity="0.7"/>
+    <ellipse cx="155" cy="165" rx="18" ry="12" fill="#d4b483" opacity="0.7"/>
+    <!-- arrows -->
+    <text x="78" y="58" fill="white" font-size="11">↑</text><text x="100" y="55" fill="white" font-size="11">↑</text><text x="120" y="58" fill="white" font-size="11">↑</text>
+    <text x="78" y="90" fill="white" font-size="12">↓</text><text x="100" y="90" fill="white" font-size="12">↓</text>
+    <text x="78" y="130" fill="white" font-size="12">↓</text><text x="100" y="130" fill="white" font-size="12">↓</text><text x="125" y="130" fill="white" font-size="12">↓</text>
+    <text x="78" y="158" fill="white" font-size="12">↓</text><text x="100" y="158" fill="white" font-size="12">↓</text>
+    <text x="158" y="80" fill="white" font-size="11">↘</text><text x="158" y="100" fill="white" font-size="11">↘</text>
+    <text x="42" y="14" fill="#555" font-size="10" font-weight="bold">Back Flat · Steep Front · Right Notch</text>
+  </svg>`
+}; // end MAPS_UNUSED
+
+// ─── HOLE DATA ────────────────────────────────────────────────────────────────
+const holes = {
+  1:  { par:4, yards:"~380", hcp:"-", difficulty:"medium", tips:[
+    "Big dogleg right — plays at least 1 club downhill off the tee. Only need ~220y, driver may not be the play",
+    "OB right if you cut the corner too aggressively. Left is red stakes",
+    "Approach usually plays 1 club uphill. Long and left is dead — brutal chip back",
+    "Bunker short left and false front short right guard the approach",
+    "🗺️ Green: Severe back-to-front slope. Tiny flat zone front-right. Middle of the green is a great shot"
+  ]},
+  2:  { par:5, yards:"~500", hcp:"-", difficulty:"hard", tips:[
+    "Elevated tee, plenty of room right, but red stakes left. Fairway narrows dramatically uphill",
+    "Shot from under the hill is blind — front of green blocked by deep bunkers",
+    "Long and left are dead — severe downslope on those sides",
+    "Fairway bunker ~60y out left to avoid. Send a partner up the hill to scope shot if going for it in 2",
+    "🗺️ Green: Edges are brutally steep (7-9%+) all around. Large flat centre (0-1%). Only place to be is dead centre"
+  ]},
+  3:  { par:4, yards:"~420", hcp:"-", difficulty:"hard", tips:[
+    "Very penal par 4 — narrow fairway is a mound between two valleys. Missing either side = 1-stroke penalty",
+    "Left is red stakes. Right finds steep hill with tree trouble. 3W/hybrid good option — plays downwind",
+    "Approach safest on the left — right has huge bunker and forced carry",
+    "🗺️ Green: Most severe on the course. Almost entirely 5-9%+ slope. ONE tiny flat patch front-right. All arrows fire straight down — being short of flag is critical"
+  ]},
+  4:  { par:3, yards:"119", hcp:"18", difficulty:"easy", tips:[
+    "Shortest par 3 on the course — plays 1-2 clubs downhill (~100y after adjustment)",
+    "Difficulty is judging swirling wind, often into and off the left",
+    "Fescue around bunkers can swallow balls — best miss is left (uphill chip)",
+    "🗺️ Green: Moderate centre (2-4%), steep edges. Dominant slope right to left. Left miss leaves uphill chip ✅"
+  ]},
+  5:  { par:4, yards:"~350", hcp:"-", difficulty:"medium", tips:[
+    "Short par 4 uphill but downwind. Left is the freeway — favor the right side always",
+    "Fescue mound protects the left portion of the green — layup may be best",
+    "🗺️ Green: Almost entirely 4-9%+ slope. ONLY safe zone: small punchbowl front-left (0-2%). Everything else — especially long and right — cascades violently away"
+  ]},
+  6:  { par:4, yards:"~380", hcp:"-", difficulty:"hard", tips:[
+    "Blind tee shot onto severely left-to-right sloping fairway. Aim at gap between trees left",
+    "Right rough is your friend — flatter lie and better angle into the green",
+    "Approach is usually uphill with a helping wind. High elevation — wind stronger here",
+    "🗺️ Green: Double S-curve swirl pattern — entirely 5-9%+ steep. Tiny refuge top-right corner (2-3%) is the ONLY target. Left-to-right dominant slope"
+  ]},
+  7:  { par:3, yards:"190", hcp:"6", difficulty:"hard", tips:[
+    "Long par 3 into the wind — par is a genuinely great score here",
+    "Fairway and green slope right to left off the same hill as #6",
+    "Long and right bunkers are dead. Ideal miss: short centre (rolls onto green) or left (uphill chip)",
+    "🗺️ Green: Back is brutally steep (5-8%+). Only safe zone: front-centre to front-left flat patch. All arrows fire right-to-left"
+  ]},
+  8:  { par:4, yards:"~390", hcp:"-", difficulty:"medium", tips:[
+    "Similar tee shot to #6 — land left side of fairway, let it trundle right. Right rough is fine",
+    "Unlike #6, this green slopes predominantly back to front (not left to right)",
+    "Cannot go long or left — bounces down into fescue",
+    "🗺️ Green: Elongated shape. Steep left edge (5-6%+) entire length. Back-to-front dominant. Centre-upper is the only safe zone"
+  ]},
+  9:  { par:5, yards:"~499", hcp:"-", difficulty:"hard", tips:[
+    "OB along the entire right side — land left half of fairway (slopes severely right)",
+    "Good drive leaves ~200y downwind approach. Prevailing wind pushes long and left — aim right, take 1 club less",
+    "Long (parking lot) and left (fescue) are bad misses on approach",
+    "🗺️ Green: Complex two-zone green. Steep red ridge divides it in half. Two flat blue zones: front-left AND centre-right. False front at bottom is brutal"
+  ]},
+  10: { par:5, yards:"~520", hcp:"-", difficulty:"medium", tips:[
+    "Long straight-forward par 5 — 3-shotter for most. Wind likely pushing everything rightward",
+    "Large bunker long-left near green — only in play for stronger hitters",
+    "Green slopes toward front-right but leftward on the blind left side — beware left pin positions",
+    "Left and long are both dead"
+  ]},
+  11: { par:4, yards:"~430", hcp:"3", difficulty:"hard", tips:[
+    "3-HCP hole. Semi-blind tee shot — aim middle/right of fairway despite dogleg left (fairway slopes hard right-to-left)",
+    "Approach is the most important shot: sharp downhill to a tricky right-to-left green",
+    "Forced carry over shallow bunker short. Fescue left and fall-offs long",
+    "🗺️ Green: Right-to-left slope throughout. Blue zone upper-right looks safe but mounds make up-and-down tough. Centre is the real target. Left edge is steep and brutal"
+  ]},
+  12: { par:4, yards:"~450", hcp:"1", difficulty:"hard", tips:[
+    "Toughest hole on the course — 450y into westerly wind. Bogey is a great score!",
+    "Aim right of fairway bunker (~240y). Anything left of bunker kicks left OB",
+    "Right play for many: lay up short. Green heavily protected by deep bunkers",
+    "Big miss is long/left — fescue awaits. Club up 1-2 clubs if trying to reach on a downslope",
+    "🗺️ Green: Back-to-front slope AND funnels from sides to centre. Right bunker zone is brutal (5-7%+). Only tiny flat spot front-left. Laying up is validated by this map"
+  ]},
+  13: { par:3, yards:"172", hcp:"13", difficulty:"medium", tips:[
+    "Long-ish par 3 into ~1 club of wind. Left is OB — favor the right",
+    "Big false front — most shots short won't hold. Short and right are the best misses",
+    "🗺️ Green: FLATTEST green on the course! Massive blue/flat centre (0-1%). Gently slopes right to left. Edges are still steep — but the huge centre makes this the most forgiving green at Presidio"
+  ]},
+  14: { par:4, yards:"~380", hcp:"-", difficulty:"medium", tips:[
+    "Breather after Amen's Corner. Semi-blind uphill tee shot to wide fairway. Left is OB",
+    "Approach to elevated green with forced carry over large bunker — usually 1 club longer",
+    "Being short or long is trouble — focus on distance",
+    "🗺️ Green: Two-tiered — higher lobe right, lower lobe left. No flat zone anywhere. Steep edges all around. Tier divider runs diagonally — get on the correct level"
+  ]},
+  15: { par:3, yards:"165", hcp:"17", difficulty:"medium", tips:[
+    "Plays ~2 clubs downhill (+20y elevation). Wind strong off the right — can't feel it from the sheltered tee",
+    "Low running shot viable — fairway kicks toward the green from 65y out",
+    "Anything left or long leads to an extremely challenging chip back up",
+    "🗺️ Green: Semi-volcano confirmed! Left and right edges feed inward (arrows point to centre). Blue channel runs vertically through the middle. Land the centre channel — the bowl catches you. False front is severe"
+  ]},
+  16: { par:4, yards:"~370", hcp:"-", difficulty:"medium", tips:[
+    "Fairway bunker bang in the middle of the landing area (~250y) — pick a side",
+    "Approach plays uphill but downwind — don't over-club, long is dead",
+    "Flag right: must carry the bunker. Flag left: running it up is the safer play",
+    "🗺️ Green: Two blue pools on the right are the premium targets — but require bunker carry. Left side is moderate (2-3%) and accessible via run-up. Steep edges all around"
+  ]},
+  17: { par:4, yards:"~410", hcp:"-", difficulty:"hard", tips:[
+    "Uphill dogleg right — tee shot calls for a fade. Trees right make draws claustrophobic. Left bunkers, long-left OB",
+    "Approach is strongly uphill but downwind — don't take extra club, going long is dead",
+    "Focus on hitting the correct distance — two distinct tiers on this green",
+    "🗺️ Green: Most dramatic two-tier on the course. Front half = extreme pink/magenta (5-8%+), ALL arrows fire straight down. Back tier = two blue lobes (0-1%). Miss the back tier and you're putting off Niagara Falls"
+  ]},
+  18: { par:5, yards:"~490", hcp:"-", difficulty:"medium", tips:[
+    "Beautiful finishing hole — SF skyline as backdrop 🌉. Narrow par 5, often reachable downhill/downwind",
+    "Wall of trees left = OB. Stay right at all costs. Good drives go 20-30y further than normal",
+    "Short right is deceptive — leaves a brutal downwind chip to a green sloping away from you",
+    "Short and left are actually the best misses. Long is dead — feeds to the short game area",
+    "🗺️ Green: Large back blue zone (0-1%) — the safe target. Centre moderate. Front is steep orange/red (4-6%+). Right notch is steep and deceptive (5-6%+). Both bunkers at front catch running shots"
+  ]}
+};
+
+const iconPool = ["🎯","⚠️","🌬️","💡","🟢","📍","🧭","⛳","🚩","🏌️"];
+function pickIcon(i, tip) { return tip.startsWith("🗺️") ? "🗺️" : iconPool[i % iconPool.length]; }
+
+let currentHole = null;
+
+function buildStrip() {
+  const strip = document.getElementById('hole-strip');
+  for (let h = 1; h <= 18; h++) {
+    const btn = document.createElement('button');
+    btn.className = 'hole-btn'; btn.id = `hole-btn-${h}`; btn.textContent = h;
+    btn.onclick = () => showHole(h);
+    strip.appendChild(btn);
+  }
+}
+
+function diffBadge(d) {
+  if (d==='hard')   return '<span class="badge badge-hard">Tough</span>';
+  if (d==='easy')   return '<span class="badge badge-easy">Birdie Chance</span>';
+  return '<span class="badge badge-medium">Manageable</span>';
+}
+
+function showCover() {
+  document.getElementById('cover-view').style.display=''; document.getElementById('hole-view').style.display='none';
+  document.getElementById('header-sub').textContent='Presidio Golf Course · San Francisco';
+  document.querySelectorAll('.hole-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cover-btn').classList.add('active');
+  currentHole=null;
+}
+
+function showHole(n) {
+  const data = holes[n]; currentHole = n;
+  document.getElementById('cover-view').style.display='none'; document.getElementById('hole-view').style.display='';
+  document.getElementById('cover-btn').classList.remove('active');
+  document.querySelectorAll('.hole-btn').forEach(b=>b.classList.remove('active'));
+  const ab = document.getElementById(`hole-btn-${n}`);
+  if(ab){ ab.classList.add('active'); ab.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); }
+
+  document.getElementById('hn-num').textContent = n;
+  document.getElementById('hn-title').innerHTML = `Hole ${n}` + diffBadge(data.difficulty);
+  document.getElementById('hn-meta').textContent = `Par ${data.par} · ${data.yards} yds${data.hcp!=='-' ? ' · HCP '+data.hcp : ''} · Presidio GC`;
+  document.getElementById('header-sub').textContent = `Hole ${n} of 18 · Par ${data.par}`;
+
+  document.getElementById('hole-stats-row').innerHTML = `
+    <div class="hole-stat"><div class="val">${n}</div><div class="lbl">Hole</div></div>
+    <div class="hole-stat"><div class="val">${data.par}</div><div class="lbl">Par</div></div>
+    <div class="hole-stat"><div class="val">${data.yards}</div><div class="lbl">Yards</div></div>`;
+
+  const imgSrc = MAPS[n] || null;
+  document.getElementById('heatmap-svg').innerHTML = imgSrc
+    ? `<img src="${imgSrc}" alt="Hole ${n} Green Map" loading="lazy" style="width:100%;display:block;border-radius:10px;">`
+    : `<p style="color:#8aab8a;text-align:center;padding:20px;font-size:13px;">No image available for Hole ${n}</p>`;
+
+  const list = document.getElementById('tips-list'); list.innerHTML='';
+  data.tips.forEach((tip,i)=>{
+    const li = document.createElement('li');
+    const icon = tip.startsWith("🗺️") ? "" : pickIcon(i,tip);
+    li.innerHTML = `<span class="tip-icon">${icon}</span><span>${tip}</span>`;
+    list.appendChild(li);
+  });
+
+  document.getElementById('btn-prev').disabled = n===1;
+  document.getElementById('btn-next').disabled = n===18;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function navigate(dir) { if(currentHole) showHole(currentHole+dir); }
+buildStrip();
+</script>
+</body>
+</html>
